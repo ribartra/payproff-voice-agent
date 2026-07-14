@@ -4,33 +4,42 @@ Monorepo para una aplicacion web con integracion onchain. El proyecto esta organ
 
 ## Stack
 
+Las versiones listadas son las resueltas en `bun.lock`, salvo cuando se indica que vienen de configuracion o de `package.json`.
+
 ### Monorepo
 
 - Runtime y package manager: Bun `1.3.3`
-- Orquestacion: Turborepo
-- Lenguaje: TypeScript
-- Linting y formato: Biome
+- Workspaces: Bun workspaces sobre `apps/*`
+- Orquestacion: Turborepo `2.6.3`
+- Lenguaje: TypeScript `5.9.2` en la raiz
+- Linting y formato: Biome `2.3.8` en la raiz
 
 ### Frontend
 
-- React `19`
-- Vite
-- TanStack Start
-- TanStack Router
-- TanStack Query
-- Tailwind CSS `4`
-- shadcn/ui config con iconos de Lucide
-- T3 Env y Zod para variables de entorno tipadas
-- Viem para cliente Ethereum
+- React `19.2.1` y React DOM `19.2.1`
+- Vite `7.2.6` con `@vitejs/plugin-react` `5.1.1`
+- TanStack Start `1.139.14`
+- TanStack Router `1.139.16`, Router Devtools `1.139.15` y Router Plugin `1.139.14`
+- TanStack Query `5.90.12` y Query Devtools `5.91.1`
+- Tailwind CSS `4.1.17` con `@tailwindcss/vite` `4.1.17`
+- shadcn/ui configurado con estilo `new-york`, Tailwind CSS v4 y Lucide como libreria de iconos
+- Lucide React `0.544.0`
+- T3 Env Core `0.13.8` y Zod `4.1.13` para variables de entorno tipadas
+- Viem `2.41.2` para cliente Ethereum
+- Utilidades UI: `class-variance-authority` `0.7.1`, `clsx` `2.1.1`, `tailwind-merge` `3.4.0` y `tw-animate-css` `1.4.0`
+- Testing: Vitest `3.2.4`, Testing Library React `16.3.0`, Testing Library DOM `10.4.1` y jsdom `27.2.0`
+- Tooling frontend: Biome `2.2.4`, TypeScript `5.9.2`, vite-tsconfig-paths `5.1.4`, React Compiler Babel plugin `1.0.0` y web-vitals `5.1.0`
 
 ### Onchain
 
 - Solidity `0.8.28`
-- Hardhat `3`
-- Hardhat Toolbox Viem
-- Hardhat Ignition
-- Viem
+- Hardhat `3.0.17`
+- Hardhat Toolbox Viem `5.0.1`
+- Hardhat Ignition `3.0.6`
+- Viem `2.41.2` resuelto en el monorepo (`apps/onchain` declara `^2.30.0`)
+- TypeScript `5.8.3` en `apps/onchain`
 - Tests con `node:test` y pruebas Solidity compatibles con Foundry
+- `forge-std` declarado como `foundry-rs/forge-std#v1.9.4` y resuelto a `1eea5ba`
 
 ## Estructura
 

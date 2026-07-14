@@ -4,19 +4,27 @@ Aplicacion web de `idefy`, construida con React, Vite y TanStack Start.
 
 ## Stack
 
-- React `19`
-- Vite
-- TanStack Start
-- TanStack Router con rutas basadas en archivos
-- TanStack Query
-- Tailwind CSS `4`
-- Biome
-- Vitest
-- Testing Library
-- shadcn/ui config
-- Lucide React
-- T3 Env y Zod
-- Viem
+Versiones resueltas en `bun.lock` para este workspace:
+
+- React `19.2.1` y React DOM `19.2.1`
+- Vite `7.2.6` con `@vitejs/plugin-react` `5.1.1`
+- TanStack Start `1.139.14`
+- TanStack Router `1.139.16` con rutas basadas en archivos
+- TanStack Router Devtools `1.139.15` y Router Plugin `1.139.14`
+- TanStack Query `5.90.12` y Query Devtools `5.91.1`
+- Tailwind CSS `4.1.17` con `@tailwindcss/vite` `4.1.17`
+- Biome `2.2.4`
+- TypeScript `5.9.2`
+- Vitest `3.2.4`
+- Testing Library React `16.3.0`, Testing Library DOM `10.4.1` y jsdom `27.2.0`
+- shadcn/ui configurado con estilo `new-york`, Tailwind CSS v4 y Lucide como libreria de iconos
+- Lucide React `0.544.0`
+- T3 Env Core `0.13.8` y Zod `4.1.13`
+- Viem `2.41.2`
+- vite-tsconfig-paths `5.1.4`
+- React Compiler Babel plugin `1.0.0`
+- Utilidades UI: `class-variance-authority` `0.7.1`, `clsx` `2.1.1`, `tailwind-merge` `3.4.0` y `tw-animate-css` `1.4.0`
+- web-vitals `5.1.0`
 
 ## Estructura
 

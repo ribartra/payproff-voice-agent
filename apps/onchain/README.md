@@ -4,14 +4,16 @@ Capa de contratos inteligentes de `idefy`, construida con Hardhat 3, Solidity y 
 
 ## Stack
 
+Versiones resueltas en `bun.lock`, salvo Solidity que viene de `hardhat.config.ts`:
+
 - Solidity `0.8.28`
-- Hardhat `3`
-- Hardhat Toolbox Viem
-- Hardhat Ignition
-- Viem
-- TypeScript
+- Hardhat `3.0.17`
+- Hardhat Toolbox Viem `5.0.1`
+- Hardhat Ignition `3.0.6`
+- Viem `2.41.2` resuelto en el monorepo (`package.json` declara `^2.30.0`)
+- TypeScript `5.8.3`
 - `node:test`
-- `forge-std` para tests Solidity compatibles con Foundry
+- `forge-std` declarado como `foundry-rs/forge-std#v1.9.4` y resuelto a `1eea5ba` para tests Solidity compatibles con Foundry
 
 ## Estructura
 
