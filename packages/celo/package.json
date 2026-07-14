@@ -1,0 +1,24 @@
+{
+	"name": "@payproof/celo",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"check": "biome check .",
+		"check-types": "tsc -p tsconfig.json --noEmit",
+		"format": "biome format .",
+		"lint": "biome check .",
+		"test": "bun test --pass-with-no-tests"
+	},
+	"dependencies": {
+		"@celo/attribution-tags": "^0.3.0",
+		"viem": "2.41.2"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.3",
+		"typescript": "5.9.3"
+	}
+}

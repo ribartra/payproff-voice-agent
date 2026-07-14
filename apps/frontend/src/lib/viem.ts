@@ -1,8 +1,14 @@
-import { createPublicClient, custom } from "viem";
+import { createPublicClient, custom, http } from "viem";
 import { mainnet } from "viem/chains";
+
+type EthereumProvider = Parameters<typeof custom>[0];
+
+const ethereum = (
+	globalThis as typeof globalThis & { ethereum?: EthereumProvider }
+).ethereum;
 
 const client = createPublicClient({
 	chain: mainnet,
-	transport: custom("ethereum" in globalThis ? (globalThis as any).ethereum : undefined),
+	transport: ethereum ? custom(ethereum) : http(),
 });
 export default client;

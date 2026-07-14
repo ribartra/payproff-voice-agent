@@ -1,17 +1,24 @@
 {
-  "name": "onchain",
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "hardhat node"
-  },
-  "devDependencies": {
-    "@nomicfoundation/hardhat-ignition": "^3.0.6",
-    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.1",
-    "@types/node": "^22.8.5",
-    "forge-std": "foundry-rs/forge-std#v1.9.4",
-    "hardhat": "^3.0.17",
-    "typescript": "~5.8.0",
-    "viem": "^2.30.0"
-  }
+	"name": "onchain",
+	"version": "1.0.0",
+	"type": "module",
+	"scripts": {
+		"build": "hardhat compile",
+		"check": "hardhat compile",
+		"check-types": "tsc -p tsconfig.json --noEmit",
+		"dev": "hardhat node",
+		"format": "biome format .",
+		"lint": "biome check .",
+		"test": "hardhat test"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.3",
+		"@nomicfoundation/hardhat-ignition": "^3.0.6",
+		"@nomicfoundation/hardhat-toolbox-viem": "^5.0.1",
+		"@types/node": "^24.13.3",
+		"forge-std": "foundry-rs/forge-std#v1.9.4",
+		"hardhat": "^3.0.17",
+		"typescript": "5.9.3",
+		"viem": "^2.30.0"
+	}
 }

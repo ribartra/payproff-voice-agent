@@ -11,7 +11,8 @@ Versiones resueltas en `bun.lock`, salvo Solidity que viene de `hardhat.config.t
 - Hardhat Toolbox Viem `5.0.1`
 - Hardhat Ignition `3.0.6`
 - Viem `2.41.2` resuelto en el monorepo (`package.json` declara `^2.30.0`)
-- TypeScript `5.8.3`
+- TypeScript `5.9.3`
+- Biome `2.5.3`
 - `node:test`
 - `forge-std` declarado como `foundry-rs/forge-std#v1.9.4` y resuelto a `1eea5ba` para tests Solidity compatibles con Foundry
 
