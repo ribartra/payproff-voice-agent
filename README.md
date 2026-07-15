@@ -92,6 +92,18 @@ Las versiones listadas son las resueltas en `bun.lock`, salvo cuando se indica q
 +-- turbo.json
 ```
 
+## Modularidad desacoplada
+
+El repo separa transporte, IA, politica, dominio y blockchain para que cada pieza pueda evolucionar de forma independiente:
+
+- `packages/domain` define schemas y tipos compartidos, sin depender de Fastify, React, SDKs IA ni Celo.
+- `packages/celo` concentra constantes publicas de red, tokens y helpers de atribucion.
+- `apps/agent/src/modules/ai` interpreta la orden; `modules/policy` decide con reglas deterministicas; `modules/mandates` crea mandatos; `modules/voice` integra proveedores de voz.
+- `apps/agent/src/server.ts` solo expone HTTP y delega el caso de uso a `modules/payments`.
+- `apps/frontend` puede consumir el agente por HTTP interno sin tener claves de Gemini, AssemblyAI o wallets autonomas.
+
+La intencion es poder cambiar el proveedor de STT/TTS, el modelo LLM, la politica de aprobacion o la red onchain sin reescribir la experiencia web ni los contratos de dominio.
+
 ## Requisitos
 
 - Node.js `>=24.13.0`
@@ -183,6 +195,8 @@ bunx hardhat ignition deploy ignition/modules/Counter.ts
 ```
 
 ## Variables de entorno
+
+Usa `.env.example` como plantilla local. Los archivos `.env*` reales estan ignorados por Git; los `.env.example` si se versionan.
 
 ### Frontend
 

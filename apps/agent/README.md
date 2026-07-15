@@ -26,6 +26,28 @@ bun run dev
 
 El servicio escucha en `http://127.0.0.1:3001` por defecto y expone `GET /health`.
 
+## Arquitectura desacoplada
+
+La capa IA queda dividida por responsabilidades para poder reemplazar piezas sin tocar el flujo completo:
+
+- `agent/`: adaptador Google ADK. Expone herramientas al LLM, pero no valida pagos ni mueve fondos.
+- `modules/ai/`: parser de intencion. Usa Gemini si hay `GEMINI_API_KEY`; si no, cae a heuristicas locales para desarrollo y tests.
+- `modules/policy/`: reglas deterministicas. Decide `APPROVED`, `REQUIRES_REVIEW` o `REJECTED` sin depender del modelo.
+- `modules/mandates/`: construccion de `IntentMandate`, `CheckoutMandate` y `PaymentMandate`.
+- `modules/payments/`: caso de uso de aplicacion. Orquesta parser, resolucion de destinatario, politica y mandatos.
+- `modules/voice/`: integraciones de voz AssemblyAI y respuesta de voz Gemini.
+- `server.ts`: transporte HTTP Fastify. No contiene reglas de negocio.
+
+Esta separacion permite ejecutar pruebas del core sin Gemini, AssemblyAI, wallet ni red Celo. Los contratos compartidos viven en `@payproof/domain`; las constantes publicas de red y tokens viven en `@payproof/celo`.
+
+## Endpoints actuales
+
+- `GET /health`: estado del servicio, red Celo configurada y disponibilidad de claves IA.
+- `POST /payments/prepare`: recibe una transcripcion y prepara una propuesta de pago con politica y mandatos.
+- `POST /voice/streaming-token`: genera token temporal de AssemblyAI para streaming desde browser.
+- `POST /voice/transcribe-url`: transcribe un audio accesible por URL con AssemblyAI.
+- `POST /voice/receipt`: genera una respuesta corta para comunicar el estado de la propuesta.
+
 ## Scripts
 
 ```bash
@@ -41,7 +63,14 @@ bun run format
 
 ## Variables previstas
 
+- `HOST`
+- `PORT`
+- `LOG_LEVEL`
 - `GEMINI_API_KEY`
+- `GEMINI_MODEL`
+- `GEMINI_TTS_MODEL`
+- `ASSEMBLYAI_API_KEY`
+- `ASSEMBLYAI_TOKEN_TTL_SECONDS`
 - `DATABASE_URL`
 - `CELO_SEPOLIA_RPC_URL`
 - `CELO_MAINNET_RPC_URL`

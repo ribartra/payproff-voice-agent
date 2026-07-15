@@ -1,5 +1,5 @@
 import { codeFromHostname, toDataSuffix } from "@celo/attribution-tags";
-import type { Hex } from "viem";
+import type { Address, Hex } from "viem";
 import { celo, celoSepolia } from "viem/chains";
 
 export const CELO_CHAINS = {
@@ -20,21 +20,21 @@ export const CELO_CHAINS = {
 export const CELO_TOKENS = {
 	mainnet: {
 		USDC: {
-			address: "0xcebA9300f2b948710d2653dD7B07f33A8B32118C",
+			address: "0xcebA9300f2b948710d2653dD7B07f33A8B32118C" satisfies Address,
 			decimals: 6,
 		},
 		USDm: {
-			address: "0x765DE816845861e75A25fCA122bb6898B8B1282a",
+			address: "0x765DE816845861e75A25fCA122bb6898B8B1282a" satisfies Address,
 			decimals: 18,
 		},
 	},
 	testnet: {
 		USDC: {
-			address: "0x01C5C0122039549AD1493B8220cABEdD739BC44E",
+			address: "0x01C5C0122039549AD1493B8220cABEdD739BC44E" satisfies Address,
 			decimals: 6,
 		},
 		USDm: {
-			address: "0xdE9e4C3ce781b4bA68120d6261cbad65ce0aB00b",
+			address: "0xdE9e4C3ce781b4bA68120d6261cbad65ce0aB00b" satisfies Address,
 			decimals: 18,
 		},
 	},
