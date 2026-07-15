@@ -1,3 +1,4 @@
+import "dotenv/config";
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import { configVariable, defineConfig } from "hardhat/config";
 
@@ -28,11 +29,13 @@ export default defineConfig({
       type: "edr-simulated",
       chainType: "op",
     },
-    sepolia: {
+    celoSepolia: {
       type: "http",
       chainType: "l1",
-      url: configVariable("SEPOLIA_RPC_URL"),
-      accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+      url: process.env.CELO_SEPOLIA_RPC_URL!,
+      accounts: [
+        process.env.CELO_SEPOLIA_PRIVATE_KEY!
+      ],
     },
   },
 });
