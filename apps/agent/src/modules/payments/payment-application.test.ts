@@ -16,7 +16,7 @@ function createApplication() {
 describe("PaymentApplication", () => {
 	test("prepares an approved payment mandate from a voice transcript", async () => {
 		const payment = await createApplication().prepare({
-			transcript: "Paga 5 USDC al proveedor por la factura",
+			transcript: "Paga 0.5 USDC al proveedor por la factura",
 			userWallet,
 			merchantAllowlist: {
 				proveedor: providerWallet,
@@ -31,7 +31,7 @@ describe("PaymentApplication", () => {
 		expect(payment.checkoutMandate?.merchant).toBe(providerWallet);
 		expect(payment.paymentMandate?.payer).toBe(userWallet);
 		expect(payment.paymentMandate?.payee).toBe(providerWallet);
-		expect(payment.paymentMandate?.amountBaseUnits).toBe("5000000");
+		expect(payment.paymentMandate?.amountBaseUnits).toBe("500000");
 	});
 
 	test("requires review when the recipient is not resolved", async () => {

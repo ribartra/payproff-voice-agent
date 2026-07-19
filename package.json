@@ -3,6 +3,8 @@
 	"private": true,
 	"scripts": {
 		"build": "turbo run build",
+		"db:migrate": "bun run --filter backend db:migrate",
+		"db:up": "docker compose up -d postgres redis",
 		"dev": "turbo run dev",
 		"test": "turbo run test",
 		"check": "turbo run check",

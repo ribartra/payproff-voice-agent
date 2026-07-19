@@ -39,6 +39,7 @@ Las versiones listadas son las resueltas en `bun.lock`, salvo cuando se indica q
 - Fastify `5.10.0`
 - Google ADK `1.3.0` y ADK Devtools `1.3.0`
 - Google GenAI `2.11.0`
+- Google Cloud Text-to-Speech `6.4.1`
 - AssemblyAI JS SDK `4.36.3`
 - Prisma `7.8.0` y `@prisma/client` `7.8.0`
 - Pino `10.3.1`
@@ -46,12 +47,23 @@ Las versiones listadas son las resueltas en `bun.lock`, salvo cuando se indica q
 - Viem `2.41.2`
 - Zod `4.1.13`
 
+### Backend
+
+- Node.js `>=24.13.0`
+- Fastify `5.10.0`
+- PostgreSQL via `pg` `8.20.0`
+- Redis `5.10.0` para sesiones HTTP-only del usuario
+- Zod `4.1.13`
+- TypeScript `5.9.3`
+- Biome `2.5.3`
+
 ### Onchain
 
 - Solidity `0.8.28`
 - Hardhat `3.0.17`
 - Hardhat Toolbox Viem `5.0.1`
 - Hardhat Ignition `3.0.6`
+- OpenZeppelin Contracts `5.6.1`
 - Viem `2.41.2` resuelto en el monorepo (`apps/onchain` declara `^2.30.0`)
 - TypeScript `5.9.3` en `apps/onchain`
 - Tests con `node:test` y pruebas Solidity compatibles con Foundry
@@ -77,6 +89,9 @@ Las versiones listadas son las resueltas en `bun.lock`, salvo cuando se indica q
 |   |   +-- vite.config.ts
 |   +-- agent
 |   |   +-- src
+|   +-- backend
+|   |   +-- sql
+|   |   +-- src
 |   +-- onchain
 |       +-- contracts
 |       +-- ignition
@@ -98,8 +113,9 @@ El repo separa transporte, IA, politica, dominio y blockchain para que cada piez
 
 - `packages/domain` define schemas y tipos compartidos, sin depender de Fastify, React, SDKs IA ni Celo.
 - `packages/celo` concentra constantes publicas de red, tokens y helpers de atribucion.
-- `apps/agent/src/modules/ai` interpreta la orden; `modules/policy` decide con reglas deterministicas; `modules/mandates` crea mandatos; `modules/voice` integra proveedores de voz.
+- `apps/agent/src/modules/ai` interpreta la orden; `modules/policy` decide con reglas deterministicas; `modules/mandates` crea mandatos; `modules/voice` integra STT, introspecciones pregrabadas y TTS.
 - `apps/agent/src/server.ts` solo expone HTTP y delega el caso de uso a `modules/payments`.
+- `apps/backend` consulta Postgres para usuarios, contactos y aliases; esos aliases se exponen como `keyterms_prompt` para AssemblyAI.
 - `apps/frontend` puede consumir el agente por HTTP interno sin tener claves de Gemini, AssemblyAI o wallets autonomas.
 
 La intencion es poder cambiar el proveedor de STT/TTS, el modelo LLM, la politica de aprobacion o la red onchain sin reescribir la experiencia web ni los contratos de dominio.
@@ -117,6 +133,13 @@ bun install
 
 ## Desarrollo
 
+Levantar dependencias locales de backend:
+
+```bash
+bun run db:up
+bun run db:migrate
+```
+
 Ejecutar todas las apps configuradas en Turborepo:
 
 ```bash
@@ -125,6 +148,7 @@ bun run dev
 
 El frontend levanta en `http://localhost:3000`.
 El agente interno levanta en `http://127.0.0.1:3001`.
+El backend de usuarios levanta en `http://127.0.0.1:3002`.
 
 Ejecutar una capa especifica:
 
@@ -135,6 +159,11 @@ bun run dev
 
 ```bash
 cd apps/agent
+bun run dev
+```
+
+```bash
+cd apps/backend
 bun run dev
 ```
 
@@ -198,6 +227,13 @@ bunx hardhat ignition deploy ignition/modules/Counter.ts
 
 Usa `.env.example` como plantilla local. Los archivos `.env*` reales estan ignorados por Git; los `.env.example` si se versionan.
 
+Para probar el login local despues de aplicar `apps/backend/sql/001_users_contacts.sql` en Postgres:
+
+- Email: `demo@payproof.local`
+- Password: `PayProofDemo2026!`
+
+El backend requiere `DATABASE_URL` para usuarios/contactos y `REDIS_URL` para sesiones.
+
 ### Frontend
 
 Las variables del cliente deben usar el prefijo `VITE_`. Actualmente el frontend valida:
@@ -215,8 +251,12 @@ La configuracion esta en `apps/frontend/src/env.ts`.
 El agente preve:
 
 - `GEMINI_API_KEY`
+- `GOOGLE_APPLICATION_CREDENTIALS`
 - `DATABASE_URL`
+- `BACKEND_HOST`
+- `BACKEND_PORT`
 - `CELO_SEPOLIA_RPC_URL`
+- `CELO_SEPOLIA_PRIVATE_KEY`
 - `CELO_MAINNET_RPC_URL`
 - `X402_FACILITATOR_URL`
 - `AGENT_WALLET_PRIVATE_KEY`

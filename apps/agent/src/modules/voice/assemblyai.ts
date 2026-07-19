@@ -31,7 +31,8 @@ export class AssemblyAiService {
 
 	async transcribeUrl(
 		audioUrl: string,
-	): Promise<{ text: string; confidence?: number }> {
+		keytermsPrompt: string[] = [],
+	): Promise<{ text: string; confidence?: number; keytermsPrompt: string[] }> {
 		if (!this.client) {
 			throw new Error("ASSEMBLYAI_API_KEY is not configured.");
 		}
@@ -41,6 +42,7 @@ export class AssemblyAiService {
 			speech_models: ["universal-3-5-pro"],
 			prompt:
 				"Orden de pago por voz para proveedores, facturas, tokens USDC o USDm y montos.",
+			keyterms_prompt: keytermsPrompt,
 		});
 
 		if (transcript.status === "error") {
@@ -50,6 +52,7 @@ export class AssemblyAiService {
 		return {
 			text: transcript.text ?? "",
 			confidence: transcript.confidence ?? undefined,
+			keytermsPrompt,
 		};
 	}
 }

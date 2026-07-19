@@ -13,9 +13,13 @@ type ParserOptions = {
 
 const geminiIntentSchema = z.object({
 	recipientAlias: z.string().min(1),
-	amount: z.string().min(1),
+	amount: z.union([z.string().min(1), z.number()]).transform(String),
 	token: tokenSymbolSchema,
-	condition: z.string().optional(),
+	condition: z
+		.string()
+		.nullable()
+		.optional()
+		.transform((value) => value ?? undefined),
 	reason: z.string().min(1),
 	confidence: z.number().min(0).max(1),
 });
@@ -53,7 +57,12 @@ export class PaymentIntentParser {
 				JSON.parse(response.text ?? "{}"),
 			);
 			return parsedPaymentIntentSchema.parse(parsed);
-		} catch {
+		} catch (error) {
+			console.warn(
+				`Payment intent parser fell back to heuristics: ${
+					error instanceof Error ? error.message : String(error)
+				}`,
+			);
 			return parseWithHeuristics(transcript);
 		}
 	}

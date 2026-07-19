@@ -1,3 +1,4 @@
+import "dotenv/config";
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import { configVariable, defineConfig } from "hardhat/config";
 
@@ -33,6 +34,12 @@ export default defineConfig({
       chainType: "l1",
       url: configVariable("SEPOLIA_RPC_URL"),
       accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+    },
+    celoSepolia: {
+      type: "http",
+      chainType: "l1",
+      url: configVariable("CELO_SEPOLIA_RPC_URL"),
+      accounts: [configVariable("CELO_SEPOLIA_PRIVATE_KEY")],
     },
   },
 });

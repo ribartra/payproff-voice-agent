@@ -1,0 +1,11 @@
+import { Pool } from "pg";
+
+export function createPool(connectionString: string): Pool {
+	return new Pool({
+		connectionString,
+		max: 10,
+		idleTimeoutMillis: 30_000,
+	});
+}
+
+export type Queryable = Pick<Pool, "query">;

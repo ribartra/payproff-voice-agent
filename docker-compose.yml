@@ -1,0 +1,34 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: payproof-postgres
+    environment:
+      POSTGRES_DB: payproof
+      POSTGRES_USER: payproof
+      POSTGRES_PASSWORD: payproof
+    ports:
+      - "5432:5432"
+    volumes:
+      - payproof-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payproof -d payproof"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: payproof-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - payproof-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  payproof-postgres-data:
+  payproof-redis-data:

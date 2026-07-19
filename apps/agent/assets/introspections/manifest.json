@@ -1,0 +1,31 @@
+{
+	"generationInfo": {
+		"model": "pre-recorded-google-cloud-tts",
+		"voice": "es-ES-Neural2-A",
+		"languageCode": "es-ES",
+		"generatedAt": "2026-07-18T16:34:36.633Z"
+	},
+	"files": [
+		{
+			"id": "processing_01",
+			"text": "Dame un momento, estoy revisando los datos del pago.",
+			"filename": "processing_01.mp3",
+			"mimeType": "audio/mpeg",
+			"status": "success"
+		},
+		{
+			"id": "processing_02",
+			"text": "Estoy validando destinatario, monto y token antes de preparar el pago.",
+			"filename": "processing_02.mp3",
+			"mimeType": "audio/mpeg",
+			"status": "success"
+		},
+		{
+			"id": "processing_03",
+			"text": "Un segundo, estoy armando la propuesta de pago.",
+			"filename": "processing_03.mp3",
+			"mimeType": "audio/mpeg",
+			"status": "success"
+		}
+	]
+}
