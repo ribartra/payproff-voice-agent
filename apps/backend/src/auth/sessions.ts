@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { createClient, type RedisClientType } from "redis";
 
 const SESSION_PREFIX = "payproof:session:";
+const WALLET_CHALLENGE_PREFIX = "payproof:wallet-challenge:";
 
 export type SessionData = {
 	userId: string;
@@ -47,6 +48,52 @@ export class RedisSessionStore {
 	async delete(sessionId: string): Promise<void> {
 		await this.connect();
 		await this.client.del(`${SESSION_PREFIX}${sessionId}`);
+	}
+
+	async createWalletChallenge(params: {
+		userId: string;
+		walletAddress: `0x${string}`;
+		chainId: number;
+		message: string;
+		ttlSeconds: number;
+	}): Promise<string> {
+		await this.connect();
+		const challengeId = randomBytes(24).toString("hex");
+		await this.client.setEx(
+			`${WALLET_CHALLENGE_PREFIX}${challengeId}`,
+			params.ttlSeconds,
+			JSON.stringify({
+				userId: params.userId,
+				walletAddress: params.walletAddress,
+				chainId: params.chainId,
+				message: params.message,
+				createdAt: new Date().toISOString(),
+			}),
+		);
+		return challengeId;
+	}
+
+	async consumeWalletChallenge(challengeId: string): Promise<{
+		userId: string;
+		walletAddress: `0x${string}`;
+		chainId: number;
+		message: string;
+		createdAt: string;
+	} | null> {
+		await this.connect();
+		const key = `${WALLET_CHALLENGE_PREFIX}${challengeId}`;
+		const raw = await this.client.get(key);
+		if (!raw) {
+			return null;
+		}
+		await this.client.del(key);
+		return JSON.parse(raw) as {
+			userId: string;
+			walletAddress: `0x${string}`;
+			chainId: number;
+			message: string;
+			createdAt: string;
+		};
 	}
 }
 

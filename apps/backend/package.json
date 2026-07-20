@@ -14,11 +14,14 @@
 		"test": "bun test --pass-with-no-tests"
 	},
 	"dependencies": {
+		"@fastify/websocket": "^11.3.0",
+		"@payproof/celo": "workspace:*",
 		"@payproof/domain": "workspace:*",
 		"dotenv": "^17.2.3",
 		"fastify": "^5.10.0",
 		"pg": "^8.20.0",
 		"redis": "^5.10.0",
+		"viem": "2.55.4",
 		"zod": "^4.1.11"
 	},
 	"devDependencies": {

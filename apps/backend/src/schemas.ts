@@ -2,6 +2,8 @@ import {
 	addressSchema,
 	networkSchema,
 	tokenSymbolSchema,
+	walletChallengeRequestSchema,
+	walletLinkRequestSchema,
 } from "@payproof/domain";
 import { z } from "zod";
 
@@ -33,9 +35,18 @@ export const userParamsSchema = z.object({
 	userId: z.string().min(1),
 });
 
+export const paymentParamsSchema = z.object({
+	paymentId: z.string().min(1),
+});
+
+export const walletLinkWithChallengeSchema = walletLinkRequestSchema.extend({
+	challengeId: z.string().min(1),
+});
+
 export type CreateAccountInput = z.infer<typeof createAccountSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type UpsertContactInput = z.infer<typeof upsertContactSchema>;
+export { walletChallengeRequestSchema, walletLinkRequestSchema };
 
 export type PayproofUser = {
 	id: string;

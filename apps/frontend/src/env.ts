@@ -14,6 +14,15 @@ export const env = createEnv({
 
 	client: {
 		VITE_APP_TITLE: z.string().min(1).optional(),
+		VITE_AGENT_URL: z.string().url().default("http://127.0.0.1:3001"),
+		VITE_BACKEND_URL: z.string().url().default("http://127.0.0.1:3002"),
+		VITE_DEFAULT_CHAIN: z
+			.enum(["celo-sepolia", "celo"])
+			.default("celo-sepolia"),
+		VITE_PAYMENT_MANAGER_ADDRESS: z
+			.string()
+			.regex(/^0x[a-fA-F0-9]{40}$/)
+			.optional(),
 	},
 
 	/**

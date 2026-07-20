@@ -136,6 +136,31 @@ export class UsersRepository {
 		};
 	}
 
+	async linkWallet(params: {
+		userId: string;
+		walletAddress: `0x${string}`;
+		network: "celo-sepolia" | "celo";
+	}): Promise<PayproofUser> {
+		const result = await this.db.query<UserRow>(
+			`
+				update payproof_users
+				set
+					wallet_address = $2,
+					network = $3,
+					updated_at = now()
+				where id = $1
+				returning *
+			`,
+			[params.userId, params.walletAddress, params.network],
+		);
+
+		if (!result.rows[0]) {
+			throw new Error("User not found.");
+		}
+
+		return mapUser(result.rows[0]);
+	}
+
 	async upsertContact(
 		userId: string,
 		input: UpsertContactInput,

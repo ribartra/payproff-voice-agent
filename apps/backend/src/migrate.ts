@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { env } from "./config.js";
@@ -9,12 +9,19 @@ if (!env.DATABASE_URL) {
 }
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
-const sqlPath = resolve(currentDir, "../sql/001_users_contacts.sql");
-const sql = await readFile(sqlPath, "utf8");
+const sqlDir = resolve(currentDir, "../sql");
 const pool = createPool(env.DATABASE_URL);
 
 try {
-	await pool.query(sql);
+	const files = (await readdir(sqlDir))
+		.filter((file) => file.endsWith(".sql"))
+		.toSorted();
+
+	for (const file of files) {
+		const sql = await readFile(resolve(sqlDir, file), "utf8");
+		await pool.query(sql);
+		console.log(`Applied ${file}.`);
+	}
 	console.log("Applied backend SQL migrations and seed data.");
 } finally {
 	await pool.end();

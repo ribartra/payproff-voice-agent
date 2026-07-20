@@ -15,7 +15,7 @@
 	},
 	"dependencies": {
 		"@celo/attribution-tags": "^0.3.0",
-		"viem": "2.41.2"
+		"viem": "2.55.4"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.3",

@@ -21,11 +21,56 @@ import {
 	useRef,
 	useState,
 } from "react";
+import {
+	createPublicClient,
+	erc20Abi,
+	formatUnits,
+	type Hash,
+	type Hex,
+	http,
+} from "viem";
+import { celo, celoSepolia } from "viem/chains";
+import {
+	useAccount,
+	useConnect,
+	useDisconnect,
+	useSignMessage,
+	useSwitchChain,
+	useWaitForTransactionReceipt,
+	useWriteContract,
+} from "wagmi";
+import { env } from "../env";
+import {
+	type BackendContact,
+	buildPaymentRequestPayload,
+	type RealtimeEnvelope,
+	type RequestPayload,
+	shouldRefreshSnapshotFromEvent,
+} from "../lib/payment-flow";
 
 export const Route = createFileRoute("/")({ component: App });
 
-const AGENT_URL = "http://127.0.0.1:3001";
-const BACKEND_URL = "http://127.0.0.1:3002";
+const AGENT_URL = env.VITE_AGENT_URL;
+const BACKEND_URL = env.VITE_BACKEND_URL;
+const PAYMENT_MANAGER_ADDRESS = env.VITE_PAYMENT_MANAGER_ADDRESS as
+	| `0x${string}`
+	| undefined;
+
+const PAYMENT_MANAGER_ABI = [
+	{
+		type: "function",
+		name: "pay",
+		stateMutability: "nonpayable",
+		inputs: [
+			{ name: "paymentId", type: "bytes32" },
+			{ name: "mandateHash", type: "bytes32" },
+			{ name: "token", type: "address" },
+			{ name: "recipient", type: "address" },
+			{ name: "amount", type: "uint256" },
+		],
+		outputs: [],
+	},
+] as const;
 
 type PreparePaymentResponse = {
 	paymentId: string;
@@ -47,8 +92,33 @@ type PreparePaymentResponse = {
 	};
 	intentMandate?: Record<string, unknown>;
 	checkoutMandate?: Record<string, unknown>;
-	paymentMandate?: Record<string, unknown>;
+	paymentMandate?: {
+		id: string;
+		checkoutMandateId: string;
+		payer: `0x${string}`;
+		payee: `0x${string}`;
+		tokenAddress: `0x${string}`;
+		amountBaseUnits: string;
+		chainId: number;
+		authorizationType: "WALLET_TRANSACTION" | "EIP3009" | "X402";
+	};
 	confirmationPrompt: string;
+};
+
+type PreparedPaymentRecord = {
+	paymentId: string;
+	state: string;
+	userWallet: `0x${string}`;
+	chainId: number;
+	tokenSymbol: "USDC" | "USDm";
+	tokenAddress: `0x${string}`;
+	tokenDecimals: number;
+	recipientAddress: `0x${string}`;
+	amountBaseUnits: string;
+	amountDisplay: string;
+	mandateHash?: Hex;
+	contractAddress?: `0x${string}`;
+	response: PreparePaymentResponse;
 };
 
 type VoiceReceiptResponse = {
@@ -83,17 +153,6 @@ type VoiceIntrospectionResponse = {
 	};
 };
 
-type RequestPayload = {
-	transcript: string;
-	userWallet: `0x${string}`;
-	network: "celo-sepolia";
-	allowedTokens: string[];
-	merchantAllowlist: Record<string, `0x${string}`>;
-	maxAmount: string;
-	validMinutes: number;
-	idempotencyKey: string;
-};
-
 type BackendUser = {
 	id: string;
 	displayName: string;
@@ -102,15 +161,6 @@ type BackendUser = {
 	network: "celo-sepolia" | "celo";
 	createdAt: string;
 	updatedAt: string;
-};
-
-type BackendContact = {
-	id: string;
-	userId: string;
-	alias: string;
-	walletAddress: `0x${string}`;
-	network: "celo-sepolia" | "celo";
-	preferredToken: "USDC" | "USDm";
 };
 
 type KeytermsResponse = {
@@ -123,6 +173,12 @@ type LoginResponse = {
 	user: BackendUser;
 	contacts: BackendContact[];
 	keyterms: KeytermsResponse;
+};
+
+type WalletChallengeResponse = {
+	challengeId: string;
+	message: string;
+	expiresAt: string;
 };
 
 type StreamingTokenResponse = {
@@ -138,6 +194,12 @@ type StreamingTurnMessage = {
 };
 
 function App() {
+	const account = useAccount();
+	const { connect, connectors, error: connectError } = useConnect();
+	const { disconnect } = useDisconnect();
+	const { signMessageAsync } = useSignMessage();
+	const { switchChainAsync } = useSwitchChain();
+	const { writeContractAsync } = useWriteContract();
 	const [transcript, setTranscript] = useState(
 		"Quiero pagar 0.5 USDC al proveedor autorizado proveedor por la factura demo",
 	);
@@ -156,6 +218,8 @@ function App() {
 		() => `demo-${Date.now()}`,
 	);
 	const [payment, setPayment] = useState<PreparePaymentResponse | null>(null);
+	const [paymentRecord, setPaymentRecord] =
+		useState<PreparedPaymentRecord | null>(null);
 	const [receipt, setReceipt] = useState<VoiceReceiptResponse | null>(null);
 	const [introspection, setIntrospection] =
 		useState<VoiceIntrospectionResponse | null>(null);
@@ -175,10 +239,20 @@ function App() {
 	const [isRecording, setIsRecording] = useState(false);
 	const [liveTranscript, setLiveTranscript] = useState("");
 	const [voiceError, setVoiceError] = useState<string | null>(null);
+	const [walletError, setWalletError] = useState<string | null>(null);
+	const [walletAction, setWalletAction] = useState<string | null>(null);
+	const [txHash, setTxHash] = useState<Hash | undefined>();
+	const [realtimeStatus, setRealtimeStatus] = useState<
+		"idle" | "connected" | "reconnecting"
+	>("idle");
+	const [lastRealtimeEvent, setLastRealtimeEvent] =
+		useState<RealtimeEnvelope | null>(null);
 	const audioContextRef = useRef<AudioContext | null>(null);
 	const mediaStreamRef = useRef<MediaStream | null>(null);
 	const processorRef = useRef<ScriptProcessorNode | null>(null);
 	const websocketRef = useRef<WebSocket | null>(null);
+	const lastRealtimeEventIdRef = useRef<string | undefined>(undefined);
+	const receiptStatus = useWaitForTransactionReceipt({ hash: txHash });
 
 	const applyLoginState = useCallback((body: LoginResponse) => {
 		setBackendUser(body.user);
@@ -212,24 +286,75 @@ function App() {
 		void restoreSession();
 	}, [applyLoginState]);
 
-	const requestPayload = useMemo<RequestPayload>(() => {
-		const contactAllowlist = Object.fromEntries(
-			contacts.map((contact) => [contact.alias, contact.walletAddress]),
-		);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: reconnecting the socket on every refresh callback identity change drops realtime events.
+	useEffect(() => {
+		if (!backendUser) {
+			return;
+		}
 
-		return {
+		let closed = false;
+		let retryTimer: number | undefined;
+		const wsUrl = `${BACKEND_URL.replace(/^http/, "ws")}/ws`;
+
+		const connectRealtime = () => {
+			setRealtimeStatus((current) =>
+				current === "idle" ? "idle" : "reconnecting",
+			);
+			const socket = new WebSocket(wsUrl);
+			socket.onopen = () => {
+				setRealtimeStatus("connected");
+				socket.send(
+					JSON.stringify({
+						type: "subscribe",
+						topics: ["payments", "contacts", "user"],
+						lastEventId: lastRealtimeEventIdRef.current,
+					}),
+				);
+			};
+			socket.onmessage = (event) => {
+				const message = JSON.parse(String(event.data)) as
+					| RealtimeEnvelope
+					| { type: string };
+				if (!("eventId" in message)) {
+					return;
+				}
+				lastRealtimeEventIdRef.current = message.eventId;
+				setLastRealtimeEvent(message);
+				if (shouldRefreshSnapshotFromEvent(message) === "contacts") {
+					void refreshContactsAndKeyterms(backendUser.id).catch(
+						() => undefined,
+					);
+				}
+			};
+			socket.onclose = () => {
+				if (closed) {
+					return;
+				}
+				setRealtimeStatus("reconnecting");
+				retryTimer = window.setTimeout(connectRealtime, 1500);
+			};
+		};
+
+		connectRealtime();
+
+		return () => {
+			closed = true;
+			if (retryTimer) {
+				window.clearTimeout(retryTimer);
+			}
+		};
+	}, [backendUser]);
+
+	const requestPayload = useMemo<RequestPayload>(() => {
+		return buildPaymentRequestPayload({
 			transcript,
 			userWallet: userWallet as `0x${string}`,
-			network: "celo-sepolia",
-			allowedTokens: ["USDC", "USDm"],
-			merchantAllowlist: {
-				...contactAllowlist,
-				[merchantAlias]: merchantAddress as `0x${string}`,
-			},
+			merchantAlias,
+			merchantAddress: merchantAddress as `0x${string}`,
 			maxAmount,
-			validMinutes: 15,
 			idempotencyKey,
-		};
+			contacts,
+		});
 	}, [
 		transcript,
 		userWallet,
@@ -264,6 +389,7 @@ function App() {
 		setReceipt(null);
 		setIntrospection(null);
 		setIntrospectionWarning(null);
+		setPaymentRecord(null);
 
 		try {
 			await requestIntrospection(
@@ -272,9 +398,10 @@ function App() {
 				setIntrospectionWarning,
 			);
 
-			const response = await fetch(`${AGENT_URL}/payments/prepare`, {
+			const response = await fetch(`${BACKEND_URL}/payments/preparations`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
+				credentials: "include",
 				body: JSON.stringify(requestPayload),
 			});
 			const body = await response.json();
@@ -283,9 +410,11 @@ function App() {
 				throw new Error(body.error ?? JSON.stringify(body, null, 2));
 			}
 
-			setPayment(body);
+			setPaymentRecord(body as PreparedPaymentRecord);
+			setPayment((body as PreparedPaymentRecord).response);
 		} catch (caught) {
 			setPayment(null);
+			setPaymentRecord(null);
 			setError(
 				caught instanceof Error
 					? caught.message
@@ -456,6 +585,171 @@ function App() {
 	};
 
 	const resetIdempotency = () => setIdempotencyKey(`demo-${Date.now()}`);
+	const connectWallet = () => {
+		const connector = connectors[0];
+		if (!connector) {
+			setWalletError("No hay wallet inyectada disponible en el navegador.");
+			return;
+		}
+		setWalletError(null);
+		connect({ connector });
+	};
+	const linkWallet = async () => {
+		if (!account.address) {
+			setWalletError("Conecta una wallet antes de vincularla.");
+			return;
+		}
+
+		setWalletAction("Vinculando wallet");
+		setWalletError(null);
+
+		try {
+			const challengeResponse = await fetch(
+				`${BACKEND_URL}/auth/wallet/challenge`,
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					credentials: "include",
+					body: JSON.stringify({
+						walletAddress: account.address,
+						chainId: account.chainId ?? celoSepolia.id,
+						network: account.chainId === celo.id ? "celo" : "celo-sepolia",
+					}),
+				},
+			);
+			const challengeBody = await challengeResponse.json();
+			if (!challengeResponse.ok) {
+				throw new Error(
+					challengeBody.error ?? JSON.stringify(challengeBody, null, 2),
+				);
+			}
+			const challenge = challengeBody as WalletChallengeResponse;
+			const signature = await signMessageAsync({ message: challenge.message });
+			const linkResponse = await fetch(`${BACKEND_URL}/auth/wallet/link`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				credentials: "include",
+				body: JSON.stringify({
+					challengeId: challenge.challengeId,
+					walletAddress: account.address,
+					chainId: account.chainId ?? celoSepolia.id,
+					network: account.chainId === celo.id ? "celo" : "celo-sepolia",
+					message: challenge.message,
+					signature,
+				}),
+			});
+			const linkBody = await linkResponse.json();
+			if (!linkResponse.ok) {
+				throw new Error(linkBody.error ?? JSON.stringify(linkBody, null, 2));
+			}
+			applyLoginState(linkBody as LoginResponse);
+		} catch (caught) {
+			setWalletError(
+				caught instanceof Error
+					? caught.message
+					: "No se pudo vincular la wallet.",
+			);
+		} finally {
+			setWalletAction(null);
+		}
+	};
+	const executePreparedPayment = async () => {
+		if (!paymentRecord?.response.paymentMandate || !paymentRecord.mandateHash) {
+			setWalletError("No hay una preparación aprobada para ejecutar.");
+			return;
+		}
+		if (!PAYMENT_MANAGER_ADDRESS) {
+			setWalletError("Configura VITE_PAYMENT_MANAGER_ADDRESS para ejecutar.");
+			return;
+		}
+		if (!account.address) {
+			setWalletError("Conecta la wallet del usuario antes de ejecutar.");
+			return;
+		}
+		if (
+			account.address.toLowerCase() !== paymentRecord.userWallet.toLowerCase()
+		) {
+			setWalletError("La wallet conectada no coincide con el usuario.");
+			return;
+		}
+		if (account.chainId !== paymentRecord.chainId) {
+			setWalletAction("Cambiando red");
+			await switchChainAsync({ chainId: paymentRecord.chainId });
+		}
+
+		setWalletAction("Revisando allowance");
+		setWalletError(null);
+
+		try {
+			const chain = paymentRecord.chainId === celo.id ? celo : celoSepolia;
+			const publicClient = createPublicClient({
+				chain,
+				transport: http(),
+			});
+			const amount = BigInt(paymentRecord.amountBaseUnits);
+			const allowance = await publicClient.readContract({
+				address: paymentRecord.tokenAddress,
+				abi: erc20Abi,
+				functionName: "allowance",
+				args: [account.address, PAYMENT_MANAGER_ADDRESS],
+			});
+
+			if (allowance < amount) {
+				setWalletAction("Solicitando approve exacto");
+				const approveHash = await writeContractAsync({
+					address: paymentRecord.tokenAddress,
+					abi: erc20Abi,
+					functionName: "approve",
+					args: [PAYMENT_MANAGER_ADDRESS, amount],
+					chainId: paymentRecord.chainId,
+				});
+				await publicClient.waitForTransactionReceipt({ hash: approveHash });
+			}
+
+			setWalletAction("Solicitando pago en wallet");
+			const paymentHash = await writeContractAsync({
+				address: PAYMENT_MANAGER_ADDRESS,
+				abi: PAYMENT_MANAGER_ABI,
+				functionName: "pay",
+				args: [
+					`0x${paymentRecord.paymentId}` as Hex,
+					paymentRecord.mandateHash,
+					paymentRecord.tokenAddress,
+					paymentRecord.recipientAddress,
+					amount,
+				],
+				chainId: paymentRecord.chainId,
+			});
+			setTxHash(paymentHash);
+			const submissionResponse = await fetch(
+				`${BACKEND_URL}/payments/${paymentRecord.paymentId}/submissions`,
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					credentials: "include",
+					body: JSON.stringify({
+						txHash: paymentHash,
+						chainId: paymentRecord.chainId,
+						contractAddress: PAYMENT_MANAGER_ADDRESS,
+						fromAddress: account.address,
+						toAddress: PAYMENT_MANAGER_ADDRESS,
+					}),
+				},
+			);
+			const submissionBody = await submissionResponse.json();
+			if (!submissionResponse.ok) {
+				throw new Error(
+					submissionBody.error ?? JSON.stringify(submissionBody, null, 2),
+				);
+			}
+		} catch (caught) {
+			setWalletError(
+				caught instanceof Error ? caught.message : "No se pudo ejecutar.",
+			);
+		} finally {
+			setWalletAction(null);
+		}
+	};
 	const login = async () => {
 		setIsLoggingIn(true);
 		setBackendError(null);
@@ -893,6 +1187,106 @@ function App() {
 				<aside className="space-y-5 lg:sticky lg:top-5 lg:self-start">
 					<div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
 						<SectionHeader
+							icon={<WalletCards className="h-5 w-5 text-emerald-700" />}
+							kicker="Wallet"
+							title={account.isConnected ? "Conectada" : "Firma del usuario"}
+						/>
+
+						<div className="mt-4 grid gap-3">
+							<Metric
+								label="Cuenta wallet"
+								value={account.address ?? "No conectada"}
+							/>
+							<Metric
+								label="Red wallet"
+								value={account.chainId ? String(account.chainId) : "N/A"}
+							/>
+							<Metric label="Realtime" value={realtimeStatus} />
+							<Metric
+								label="Último evento"
+								value={lastRealtimeEvent?.type ?? "Sin eventos"}
+							/>
+							<Metric label="Wallet perfil" value={backendUser.walletAddress} />
+						</div>
+
+						<div className="mt-4 grid gap-2">
+							{account.isConnected ? (
+								<button
+									className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-300 px-3 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-100"
+									onClick={() => disconnect()}
+									type="button"
+								>
+									Desconectar wallet
+								</button>
+							) : (
+								<button
+									className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-zinc-950 px-3 text-sm font-semibold text-white transition hover:bg-zinc-800"
+									onClick={connectWallet}
+									type="button"
+								>
+									<WalletCards className="h-4 w-4" />
+									Conectar injected
+								</button>
+							)}
+							<button
+								className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-300 px-3 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:text-zinc-400"
+								disabled={!account.address || Boolean(walletAction)}
+								onClick={() => void linkWallet()}
+								type="button"
+							>
+								Vincular por firma
+							</button>
+							<button
+								className="inline-flex h-9 items-center justify-center rounded-md bg-emerald-700 px-3 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-zinc-400"
+								disabled={!paymentRecord || Boolean(walletAction)}
+								onClick={() => void executePreparedPayment()}
+								type="button"
+							>
+								Ejecutar pago
+							</button>
+						</div>
+
+						{paymentRecord ? (
+							<div className="mt-4 grid gap-3">
+								<Metric
+									label="Monto base"
+									value={`${formatUnits(
+										BigInt(paymentRecord.amountBaseUnits),
+										paymentRecord.tokenDecimals,
+									)} ${paymentRecord.tokenSymbol}`}
+								/>
+								<Metric
+									label="Contrato"
+									value={PAYMENT_MANAGER_ADDRESS ?? "Sin configurar"}
+								/>
+								<Metric label="Tx hash" value={txHash ?? "No enviada"} />
+								<Metric
+									label="Receipt local"
+									value={
+										receiptStatus.isSuccess
+											? "confirmado por wallet/RPC"
+											: receiptStatus.isLoading
+												? "esperando"
+												: "pendiente"
+									}
+								/>
+							</div>
+						) : null}
+
+						{walletAction ? (
+							<div className="mt-3 rounded-md border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800">
+								{walletAction}
+							</div>
+						) : null}
+						{walletError || connectError ? (
+							<div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+								{walletError ?? connectError?.message}
+							</div>
+						) : null}
+					</div>
+
+					<div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+						<SectionHeader
 							icon={<UserPlus className="h-5 w-5 text-emerald-700" />}
 							kicker="Cuenta"
 							title={backendUser.displayName}
@@ -949,7 +1343,7 @@ function App() {
 					</div>
 
 					<PayloadBlock
-						title="DTO enviado a /payments/prepare"
+						title="DTO enviado a /payments/preparations"
 						value={requestPayload}
 					/>
 					<PayloadBlock
@@ -961,8 +1355,8 @@ function App() {
 						value={introspection}
 					/>
 					<PayloadBlock
-						title="DTO recibido desde /payments/prepare"
-						value={payment}
+						title="DTO persistido por backend"
+						value={paymentRecord}
 					/>
 				</aside>
 			</section>

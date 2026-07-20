@@ -47,3 +47,14 @@ export function attributionSuffixFromHostname(hostname: string): Hex {
 export function attributionSuffixFromCode(code: string): Hex {
 	return toDataSuffix(code) as Hex;
 }
+
+export function builderAttributionSuffix(params: {
+	assignedCode: string;
+	ownCode?: string;
+}): Hex {
+	const code = params.assignedCode.trim() || params.ownCode?.trim();
+	if (!code) {
+		throw new Error("A Celo Builders attribution code is required.");
+	}
+	return attributionSuffixFromCode(code);
+}
