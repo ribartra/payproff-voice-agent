@@ -60,7 +60,7 @@ El servicio escucha en `http://127.0.0.1:3001` por defecto y expone `GET /health
 La capa IA queda dividida por responsabilidades para poder reemplazar piezas sin tocar el flujo completo:
 
 - `agent/`: adaptador Google ADK. Expone herramientas al LLM, pero no valida pagos ni mueve fondos.
-- `modules/ai/`: parser de intencion. Usa Gemini si hay `GEMINI_API_KEY`; si no, cae a heuristicas locales para desarrollo y tests.
+- `modules/ai/`: parser de intencion. Usa Gemini si hay `GEMINI_API_KEY`; si no, cae a heuristicas locales para desarrollo y tests. Si Gemini devuelve un JSON parcialmente valido con `reason: null`, el parser conserva el resultado y usa el transcript como razon canonica en vez de descartar toda la respuesta.
 - `modules/policy/`: reglas deterministicas. Decide `APPROVED`, `REQUIRES_REVIEW` o `REJECTED` sin depender del modelo.
 - `modules/mandates/`: construccion de `IntentMandate`, `CheckoutMandate` y `PaymentMandate`.
 - `modules/payments/`: caso de uso de aplicacion. Orquesta parser, resolucion de destinatario, politica y mandatos.
@@ -85,7 +85,7 @@ Esta separacion permite ejecutar pruebas del core sin Gemini, AssemblyAI, wallet
 1. El frontend envia `PreparePaymentRequest` a `POST /payments/prepare`.
 2. Fastify valida el payload con `preparePaymentRequestSchema` desde `@payproof/domain`.
 3. `PaymentApplication.prepare` invoca `PaymentIntentParser`.
-4. `PaymentIntentParser` usa Gemini si `GEMINI_API_KEY` existe; si no, usa heuristicas locales para desarrollo.
+4. `PaymentIntentParser` usa Gemini si `GEMINI_API_KEY` existe; si no, usa heuristicas locales para desarrollo. Las respuestas Gemini se normalizan antes de entrar al schema compartido; campos opcionales como `condition` pueden ser `null`, y `reason: null` se sustituye por el transcript original.
 5. `resolveRecipient` cruza `recipientAlias` contra `merchantAllowlist`.
 6. `evaluatePaymentPolicy` aplica reglas deterministicas: confianza, token permitido, alias resuelto, monto positivo, limite `maxAmount` y wallet valida.
 7. `createPreparedPayment` construye `paymentId`, `IntentMandate`, `CheckoutMandate`, `PaymentMandate`, `mandateHash` y `confirmationPrompt`.

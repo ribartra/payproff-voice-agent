@@ -6,7 +6,8 @@
     "dev": "vite dev --port 3000 --strictPort",
     "build": "vite build",
     "serve": "vite preview",
-		"test": "vitest run --passWithNoTests",
+    "test": "vitest run --passWithNoTests",
+    "test:ui-smoke": "playwright test e2e/ui-smoke.spec.ts",
     "check-types": "tsc -p tsconfig.json --noEmit",
     "format": "biome format",
     "lint": "biome lint",
@@ -41,6 +42,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.3",
+    "@playwright/test": "^1.61.1",
     "@tanstack/devtools-vite": "^0.3.11",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.3.2",

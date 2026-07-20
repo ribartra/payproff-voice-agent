@@ -16,6 +16,7 @@ Versiones resueltas en `bun.lock` para este workspace:
 - Biome `2.5.3`
 - TypeScript `5.9.3`
 - Vitest `3.2.4`
+- Playwright `1.61.1` para smoke visual
 - Testing Library React `16.3.2`, Testing Library DOM `10.4.1` y jsdom `27.2.0`
 - shadcn/ui configurado con estilo `new-york`, Tailwind CSS v4 y Lucide como libreria de iconos
 - Lucide React `0.544.0`
@@ -68,11 +69,14 @@ bun run dev      # servidor de desarrollo
 bun run build    # build de produccion
 bun run serve    # preview del build
 bun run test     # tests con Vitest
+bun run test:ui-smoke # smoke visual con Playwright contra la URL local
 bun run check-types # typecheck con tsc
 bun run check    # Biome check
 bun run lint     # Biome lint
 bun run format   # Biome format
 ```
+
+El smoke visual usa `PLAYWRIGHT_BASE_URL` si esta definida; por defecto apunta a `http://localhost:3000`. Requiere que el servidor este levantado y, en una maquina nueva, que Chromium de Playwright este instalado con `bunx playwright install chromium`.
 
 ## Rutas
 

@@ -31,6 +31,7 @@ Las versiones listadas son las resueltas en `bun.lock`, salvo cuando se indica q
 - `@celo/attribution-tags` `0.3.0` para suffix ERC-8021 en transacciones Celo
 - Utilidades UI: `class-variance-authority` `0.7.1`, `clsx` `2.1.1`, `tailwind-merge` `3.6.0` y `tw-animate-css` `1.4.0`
 - Testing: Vitest `3.2.4`, Testing Library React `16.3.2`, Testing Library DOM `10.4.1` y jsdom `27.2.0`
+- Smoke visual: Playwright `1.61.1`
 - Tooling frontend: Biome `2.5.3`, TypeScript `5.9.3`, vite-tsconfig-paths `5.1.4`, React Compiler Babel plugin `1.0.0` y web-vitals `5.3.0`
 
 ### Agent
@@ -204,6 +205,16 @@ bun run db:up
 bun run db:migrate
 ```
 
+Recrear las dependencias Docker de este monorepo desde cero:
+
+```bash
+docker compose down -v --remove-orphans
+bun run db:up
+bun run db:migrate
+```
+
+El repositorio contiene un solo `docker-compose.yml`; este comando elimina los volumenes locales de Postgres y Redis definidos para PayProof.
+
 Ejecutar todas las apps configuradas en Turborepo:
 
 ```bash
@@ -258,11 +269,14 @@ bun run dev
 bun run build
 bun run serve
 bun run test
+bun run test:ui-smoke
 bun run check-types
 bun run check
 bun run lint
 bun run format
 ```
+
+`bun run test:ui-smoke` requiere que el frontend este sirviendo en `http://localhost:3000` o que `PLAYWRIGHT_BASE_URL` apunte a otra URL. La primera vez puede requerir instalar Chromium con `bunx playwright install chromium`.
 
 En `apps/agent`:
 

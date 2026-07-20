@@ -20,9 +20,24 @@ const geminiIntentSchema = z.object({
 		.nullable()
 		.optional()
 		.transform((value) => value ?? undefined),
-	reason: z.string().min(1),
+	reason: z
+		.string()
+		.nullable()
+		.optional()
+		.transform((value) => value?.trim() || undefined),
 	confidence: z.number().min(0).max(1),
 });
+
+export function parseGeminiIntentPayload(
+	payload: unknown,
+	transcript: string,
+): ParsedPaymentIntent {
+	const parsed = geminiIntentSchema.parse(payload);
+	return parsedPaymentIntentSchema.parse({
+		...parsed,
+		reason: parsed.reason ?? transcript.trim(),
+	});
+}
 
 export class PaymentIntentParser {
 	private readonly client?: GoogleGenAI;
@@ -44,6 +59,9 @@ export class PaymentIntentParser {
 				contents: [
 					"Extrae una intención de pago desde la orden de voz. Responde sólo JSON válido.",
 					"Campos: recipientAlias, amount, token, condition, reason, confidence.",
+					"recipientAlias, amount, token, reason y confidence son obligatorios y nunca deben ser null.",
+					"reason debe ser una frase breve basada en la orden original; si no hay otra razón, usa la orden completa.",
+					"condition puede ser null sólo si no hay una condición explícita.",
 					"No inventes direcciones. Si el monto, token o destinatario es ambiguo, baja confidence.",
 					`Orden: ${transcript}`,
 				].join("\n"),
@@ -53,10 +71,10 @@ export class PaymentIntentParser {
 				},
 			});
 
-			const parsed = geminiIntentSchema.parse(
+			return parseGeminiIntentPayload(
 				JSON.parse(response.text ?? "{}"),
+				transcript,
 			);
-			return parsedPaymentIntentSchema.parse(parsed);
 		} catch (error) {
 			console.warn(
 				`Payment intent parser fell back to heuristics: ${
