@@ -7,6 +7,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 contract PaymentManager {
     using SafeERC20 for IERC20;
 
+    mapping(bytes32 => bool) public executedPayments;
+
     event PaymentExecuted(
         bytes32 indexed paymentId,
         bytes32 indexed mandateHash,

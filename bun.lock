@@ -114,6 +114,7 @@
       "dependencies": {
         "@openzeppelin/contracts": "^5.6.1",
         "dotenv": "^17.4.2",
+        "fastify": "^5.10.0",
       },
       "devDependencies": {
         "@biomejs/biome": "2.5.3",
@@ -122,6 +123,7 @@
         "@types/node": "^24.13.3",
         "forge-std": "foundry-rs/forge-std#v1.9.4",
         "hardhat": "^3.0.17",
+        "tsx": "^4.23.1",
         "typescript": "5.9.3",
         "viem": "^2.30.0",
       },

@@ -32,7 +32,13 @@ describe("PaymentManager", async function () {
 		const deploymentBlockNumber = await publicClient.getBlockNumber();
 
 		await paymentManager.write.pay(
-			[paymentId, mandateHash, token.address, payee.account.address, amount],
+			[
+				paymentId,
+				mandateHash,
+				token.address,
+				payee.account.address,
+				amount,
+			],
 			{
 				account: payer.account,
 			},

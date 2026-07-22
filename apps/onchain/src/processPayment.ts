@@ -11,6 +11,7 @@ import { paymentManagerAbi } from "./paymentManagerAbi.js";
 import { erc20Abi } from "./erc20Abi.js";
 
 export interface PaymentRequest {
+    paymentId: string;
     payer: string;
     payee: string;
     amount: string;
@@ -18,10 +19,10 @@ export interface PaymentRequest {
 }
 
 const PAYMENT_MANAGER =
-    "0x7044F3945D17B9C14102F13E8fb16b492bDDcFB7";
+    "0x54bEc67D261C167370e69593FFef05c802582371";
 
 const USDC =
-    "0x01C5C0122039549AD1493B8220cABEdD739BC44E";  
+    "0xb7FCC45555A107D8b476AaB70C61A26d48F7B678";
 
 const PRIVATE_KEY =
     process.env.CELO_SEPOLIA_PRIVATE_KEY as `0x${string}`;
@@ -51,10 +52,9 @@ export async function processPayment(
 
     const publicClient = createPublicClient({
         chain: celoSepolia,
-        transport: http(
-            process.env.CELO_SEPOLIA_RPC_URL,
-        ),
+        transport: http(RPC_URL),
     });
+
 
     const amount = parseUnits(
         payment.amount,
@@ -63,10 +63,13 @@ export async function processPayment(
 
 
     console.log({
+        paymentId: payment.paymentId,
         from: account.address,
         to: payment.payee,
         amount: amount.toString(),
     });
+
+
     const balance = await publicClient.readContract({
         address: USDC,
         abi: erc20Abi,
@@ -76,8 +79,10 @@ export async function processPayment(
         ],
     });
 
+
     console.log("USDC Balance:");
     console.log(balance.toString());
+
 
     console.log("Approving USDC...");
 
@@ -125,6 +130,7 @@ export async function processPayment(
         abi: paymentManagerAbi,
         functionName: "pay",
         args: [
+            payment.paymentId as `0x${string}`,
             payment.payee as `0x${string}`,
             amount,
         ],
@@ -133,4 +139,7 @@ export async function processPayment(
 
     console.log("Transaction:");
     console.log(hash);
+
+
+    return hash;
 }

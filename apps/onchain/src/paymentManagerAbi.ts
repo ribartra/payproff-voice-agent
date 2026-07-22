@@ -5,6 +5,10 @@ export const paymentManagerAbi = [
     stateMutability: "nonpayable",
     inputs: [
       {
+        name: "paymentId",
+        type: "bytes32",
+      },
+      {
         name: "receiver",
         type: "address",
       },
