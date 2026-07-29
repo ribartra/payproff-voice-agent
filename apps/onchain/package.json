@@ -8,10 +8,10 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.0.6",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.1",
-    "@types/node": "^22.8.5",
-    "forge-std": "foundry-rs/forge-std#v1.9.4",
+    "@types/node": "^26.1.2",
+    "forge-std": "foundry-rs/forge-std#v1.16.2",
     "hardhat": "^3.0.17",
-    "typescript": "~5.8.0",
+    "typescript": "7.0.2",
     "viem": "^2.30.0"
   }
 }
