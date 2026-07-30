@@ -55,13 +55,18 @@ async function main() {
 
     console.log("paymentId:", paymentId);
 
-    await manager.write.pay([
+    await manager.write.pay(
+    [
         paymentId,
-        receiver.account.address as `0x${string}`,
-        amount
-    ], {
-        account: payer.account
-    });
+        mandateHash,
+        token.address,
+        receiver,
+        amount,
+    ],
+    {
+        account: payer.account,
+    },
+);
 
     console.log("payment ejecutado");
 
